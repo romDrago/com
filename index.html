@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Creator Browser</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: auto;
+      background-color: black;
+    }
+
+    form {
+      margin-bottom: 20px;
+      background-color: aliceblue;
+    }
+
+    input {
+      padding: 10px;
+      width: 100%;
+      font-size: 16px;
+    }
+
+    .creator {
+      position: relative;
+      display: block;
+      margin-bottom: 20px;
+      text-decoration: none;
+      color: inherit;
+      overflow: hidden;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      transition: transform 0.2s;
+    }
+
+    .creator:hover {
+      transform: scale(1.01);
+    }
+
+    .creator .banner {
+      width: 100%;
+      height: 150px;
+      object-fit: cover;
+      display: block;
+      filter: brightness(0.7);
+    }
+
+    .creator .icon {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      width: 125px;
+      height: 125px;
+      border-radius: 50%;
+      border: 2px solid white;
+    }
+
+    .creator .name-overlay {
+      position: absolute;
+      bottom: 0px;
+      right: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      color: yellow;
+      filter: opacity(0.7);
+    }
+  </style>
+</head>
+
+<body>
+  <h1 style="color: aliceblue;">Browse Creators</h1>
+  <form onsubmit="submitSearch(event)">
+    <input type="text" id="searchBar" placeholder="Search by creator name..." />
+  </form>
+  <div id="creatorList"></div>
+
+  <script>
+    let creators = [];
+    let filteredCreators = [];
+    let displayCount = 50;
+    let increment = 20;
+
+    async function loadCreators() {
+      const response = await fetch("creators.json");
+      creators = await response.json();
+      creators.sort((a, b) => b.favorited - a.favorited);
+
+      const params = new URLSearchParams(window.location.search);
+      const searchQuery = params.get("search")?.toLowerCase() || "";
+
+      document.getElementById("searchBar").value = searchQuery;
+
+      if (searchQuery) {
+        filteredCreators = creators.filter(c =>
+          c.name.toLowerCase().includes(searchQuery)
+        );
+      } else {
+        filteredCreators = creators;
+      }
+
+      renderCreators();
+    }
+
+    function renderCreators() {
+      const list = document.getElementById("creatorList");
+      list.innerHTML = "";
+      const slice = filteredCreators.slice(0, displayCount);
+
+      slice.forEach(creator => {
+        const link = document.createElement("a");
+        link.className = "creator";
+        link.href = `creator.html?id=${creator.id}&service=${creator.service}`;
+
+        link.innerHTML = `
+          <img class="banner" src="https://img.coomer.su/banners/${creator.service}/${creator.id}" alt="${creator.name}">
+          <img class="icon" src="https://img.coomer.su/icons/${creator.service}/${creator.id}" alt="${creator.name}">
+          <div class="name-overlay">${creator.name}</div>
+        `;
+
+        list.appendChild(link);
+      });
+    }
+
+    function submitSearch(event) {
+      event.preventDefault();
+      const query = document.getElementById("searchBar").value;
+      const url = new URL(window.location.href);
+      url.searchParams.set("search", query);
+      window.location.href = url.toString(); // reload with query
+    }
+
+    window.addEventListener("scroll", () => {
+      if (
+        window.innerHeight + window.scrollY >=
+        document.body.offsetHeight - 10
+      ) {
+        if (displayCount < filteredCreators.length) {
+          displayCount += increment;
+          renderCreators();
+        }
+      }
+    });
+
+    loadCreators();
+  </script>
+</body>
+
+</html>
