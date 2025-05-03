@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Creator Posts</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 100vw;
+      background-color: black;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: aliceblue;
+    }
+
+    .posts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .post {
+      width: 250px;
+      height: 250px;
+      overflow: hidden;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      background-color: #333;
+      position: relative;
+      transition: all ease-in-out .25s;
+    }
+    .post:hover{
+        transform: scale(1.1);
+    }
+
+    .post a {
+      display: block;
+      width: 100%;
+      height: 100%;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .post img, .post video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .badge {
+      position: absolute;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      font-size: 14px;
+      padding: 3px 6px;
+      border-radius: 5px;
+    }
+
+    .image-count {
+      bottom: 8px;
+      right: 8px;
+    }
+
+    .video-count {
+      bottom: 8px;
+      left: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1 id="creatorTitle">Posts</h1>
+  <div class="posts" id="postContainer"></div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+    const service = params.get("service");
+    let offset = 0;
+    let loading = false;
+
+    async function fetchPosts() {
+      if (loading) return;
+      loading = true;
+
+      const url = `http://127.0.0.1:5000/api/posts?service=${service}&id=${id}&o=${offset}`;
+      const response = await fetch(url);
+      const posts = await response.json();
+      const container = document.getElementById("postContainer");
+
+      posts.forEach(post => {
+        const postDiv = document.createElement("div");
+        postDiv.className = "post";
+
+        const link = document.createElement("a");
+        link.href = `post.html?id=${id}&service=${service}&post_id=${post.id}`;
+
+        const attachments = post.attachments || [];
+        const imageCount = attachments.filter(att =>
+          /\.(jpg|jpeg|png|gif|webp)$/i.test(att.path)
+        ).length;
+        const videoCount = attachments.filter(att =>
+          /\.(mp4|webm|mov|mkv)$/i.test(att.path)
+        ).length;
+
+        let mediaPreview = null;
+
+        if (imageCount > 0) {
+          const firstImage = attachments.find(att =>
+            /\.(jpg|jpeg|png|gif|webp)$/i.test(att.path)
+          );
+          mediaPreview = document.createElement("img");
+          mediaPreview.src = `https://img.coomer.su/thumbnail/data${firstImage.path}`;
+        } else if (videoCount > 0) {
+          const firstVideo = attachments.find(att =>
+            /\.(mp4|webm|mov|mkv)$/i.test(att.path)
+          );
+          mediaPreview = document.createElement("video");
+          mediaPreview.src = `https://coomer.su/data${firstVideo.path}`;
+          mediaPreview.muted = true;
+          mediaPreview.playsInline = true;
+          mediaPreview.autoplay = true;
+          mediaPreview.loop = true;
+        } else if (post.file && post.file.path) {
+          // Fallback file preview
+          if (/\.(jpg|jpeg|png|gif|webp)$/i.test(post.file.path)) {
+            mediaPreview = document.createElement("img");
+            mediaPreview.src = `https://img.coomer.su/thumbnail/data${post.file.path}`;
+          } else if (/\.(mp4|webm|mov|mkv)$/i.test(post.file.path)) {
+            mediaPreview = document.createElement("video");
+            mediaPreview.src = `https://coomer.su/data${post.file.path}`;
+            mediaPreview.muted = true;
+            mediaPreview.playsInline = true;
+            mediaPreview.autoplay = true;
+            mediaPreview.loop = true;
+          }
+        }
+
+        // Fallback if no previewable media
+        if (!mediaPreview) {
+          mediaPreview = document.createElement("div");
+          mediaPreview.style.width = "100%";
+          mediaPreview.style.height = "100%";
+          mediaPreview.style.background = "#555";
+        }
+
+        link.appendChild(mediaPreview);
+        postDiv.appendChild(link);
+
+        // Add badges
+        const imgBadge = document.createElement("div");
+        imgBadge.className = "badge image-count";
+        imgBadge.textContent = `${imageCount} 🖼️`;
+
+        const vidBadge = document.createElement("div");
+        vidBadge.className = "badge video-count";
+        vidBadge.textContent = `${videoCount} 🎥`;
+
+        postDiv.appendChild(imgBadge);
+        postDiv.appendChild(vidBadge);
+        container.appendChild(postDiv);
+      });
+
+      offset += 50;
+      loading = false;
+    }
+
+    window.addEventListener("scroll", () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+        fetchPosts();
+      }
+    });
+
+    fetchPosts();
+  </script>
+</body>
+</html>
