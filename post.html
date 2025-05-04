@@ -156,7 +156,7 @@
 
         async function loadPost() {
             try {
-                const res = await fetch(`https://com-rl1y.onrender.com/api/post_detail?service=${service}&id=${creatorId}&post_id=${postId}`);
+                const res = await fetch(`https://compython-p.onrender.com/api/post_detail?service=${service}&id=${creatorId}&post_id=${postId}`);
                 const data = await res.json();
 
                 postTitle.textContent = data.title || "Post";
